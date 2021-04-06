@@ -32,26 +32,55 @@ AGALandCharacter::AGALandCharacter()
 	FirstPersonCameraComponent->SetRelativeLocation(FVector(-39.56f, 1.75f, 64.f)); // Position the camera
 	FirstPersonCameraComponent->bUsePawnControlRotation = true;
 
+	/** First Person **/
+
 	// Create a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
-	Mesh1P = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CharacterMesh1P"));
-	Mesh1P->SetOnlyOwnerSee(true);
-	Mesh1P->SetupAttachment(FirstPersonCameraComponent);
-	Mesh1P->bCastDynamicShadow = false;
-	Mesh1P->CastShadow = false;
-	Mesh1P->SetRelativeRotation(FRotator(1.9f, -19.19f, 5.2f));
-	Mesh1P->SetRelativeLocation(FVector(-0.5f, -4.4f, -155.7f));
+	StaticMeshFirstPerson = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SM_FirstPerson"));
+	//StaticMeshFirstPerson->SetOnlyOwnerSee(true);
+	//StaticMeshFirstPerson->SetOwnerNoSee(false);
+	StaticMeshFirstPerson->SetupAttachment(FirstPersonCameraComponent);
+	StaticMeshFirstPerson->bCastDynamicShadow = false;
+	StaticMeshFirstPerson->CastShadow = false;
+	//StaticMeshFirstPerson->SetRelativeRotation(FRotator(1.9f, -19.19f, 5.2f));
+	//StaticMeshFirstPerson->SetRelativeLocation(FVector(-0.5f, -4.4f, -155.7f));
 
 	// Create a gun mesh component
-	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
-	FP_Gun->SetOnlyOwnerSee(false);			// otherwise won't be visible in the multiplayer
-	FP_Gun->bCastDynamicShadow = false;
-	FP_Gun->CastShadow = false;
-	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
-	FP_Gun->SetupAttachment(RootComponent);
+	FP_GunMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_GunMesh"));
+	//FP_GunMesh->SetOnlyOwnerSee(true);
+	//FP_GunMesh->SetOwnerNoSee(false);
+	FP_GunMesh->SetupAttachment(StaticMeshFirstPerson);
+	FP_GunMesh->bCastDynamicShadow = false;
+	FP_GunMesh->CastShadow = false;
 
-	FP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
-	FP_MuzzleLocation->SetupAttachment(FP_Gun);
-	FP_MuzzleLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
+	FP_SpawnShootLocation = CreateDefaultSubobject<USceneComponent>(TEXT("FP_SpawnShootLocation"));
+	FP_SpawnShootLocation->SetupAttachment(FP_GunMesh);
+	FP_SpawnShootLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
+
+	/** Third Person **/
+
+	// Create a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
+	StaticMeshThirdPerson = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("SM_ThirdPerson"));
+	//StaticMeshThirdPerson->SetOnlyOwnerSee(false);
+	//StaticMeshThirdPerson->SetOwnerNoSee(true);
+	StaticMeshThirdPerson->SetupAttachment(RootComponent);
+	StaticMeshThirdPerson->bCastDynamicShadow = false;
+	StaticMeshThirdPerson->CastShadow = false;
+	//StaticMeshThirdPerson->SetRelativeRotation(FRotator(0, 0, -90));
+	//StaticMeshThirdPerson->SetRelativeLocation(FVector(0,0,-90));
+
+	// Create a gun mesh component
+	TP_GunMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("TP_GunMesh"));
+	//TP_GunMesh->SetOnlyOwnerSee(false);
+	//TP_GunMesh->SetOwnerNoSee(true);
+	TP_GunMesh->SetupAttachment(StaticMeshThirdPerson);
+	TP_GunMesh->bCastDynamicShadow = false;
+	TP_GunMesh->CastShadow = false;
+	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
+
+	TP_SpawnShootLocation = CreateDefaultSubobject<USceneComponent>(TEXT("TP_SpawnShootLocation"));
+	TP_SpawnShootLocation->SetupAttachment(TP_GunMesh);
+	TP_SpawnShootLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
+	
 
 	// Default offset from the character location for projectiles to spawn
 	GunOffset = FVector(100.0f, 0.0f, 10.0f);
@@ -59,29 +88,6 @@ AGALandCharacter::AGALandCharacter()
 	// Note: The ProjectileClass and the skeletal mesh/anim blueprints for Mesh1P, FP_Gun, and VR_Gun 
 	// are set in the derived blueprint asset named MyCharacter to avoid direct content references in C++.
 
-	// Create VR Controllers.
-	R_MotionController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("R_MotionController"));
-	R_MotionController->MotionSource = FXRMotionControllerBase::RightHandSourceId;
-	R_MotionController->SetupAttachment(RootComponent);
-	L_MotionController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("L_MotionController"));
-	L_MotionController->SetupAttachment(RootComponent);
-
-	// Create a gun and attach it to the right-hand VR controller.
-	// Create a gun mesh component
-	VR_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("VR_Gun"));
-	VR_Gun->SetOnlyOwnerSee(false);			// otherwise won't be visible in the multiplayer
-	VR_Gun->bCastDynamicShadow = false;
-	VR_Gun->CastShadow = false;
-	VR_Gun->SetupAttachment(R_MotionController);
-	VR_Gun->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
-
-	VR_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("VR_MuzzleLocation"));
-	VR_MuzzleLocation->SetupAttachment(VR_Gun);
-	VR_MuzzleLocation->SetRelativeLocation(FVector(0.000004, 53.999992, 10.000000));
-	VR_MuzzleLocation->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));		// Counteract the rotation of the VR gun model.
-
-	// Uncomment the following line to turn motion controllers on by default:
-	//bUsingMotionControllers = true;
 }
 
 void AGALandCharacter::BeginPlay()
@@ -90,19 +96,9 @@ void AGALandCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	//Attach gun mesh component to Skeleton, doing it here because the skeleton is not yet created in the constructor
-	FP_Gun->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
+	FP_GunMesh->AttachToComponent(StaticMeshFirstPerson, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
+	TP_GunMesh->AttachToComponent(StaticMeshThirdPerson, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("Weapon_Socket"));
 
-	// Show or hide the two versions of the gun based on whether or not we're using motion controllers.
-	if (bUsingMotionControllers)
-	{
-		VR_Gun->SetHiddenInGame(false, true);
-		Mesh1P->SetHiddenInGame(true, true);
-	}
-	else
-	{
-		VR_Gun->SetHiddenInGame(true, true);
-		Mesh1P->SetHiddenInGame(false, true);
-	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -117,8 +113,8 @@ void AGALandCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	// Bind fire event
-	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AGALandCharacter::OnFire);
+	// Bind fire event (FAIT EN BLUEPRINT)
+	//PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AGALandCharacter::OnFire);
 
 	// Enable touchscreen input
 	EnableTouchscreenMovement(PlayerInputComponent);
@@ -138,36 +134,9 @@ void AGALandCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerIn
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AGALandCharacter::LookUpAtRate);
 }
 
-void AGALandCharacter::OnFire()
+void AGALandCharacter::OnFire_Owner()
 {
-	// try and fire a projectile
-	if (ProjectileClass != nullptr)
-	{
-		UWorld* const World = GetWorld();
-		if (World != nullptr)
-		{
-			if (bUsingMotionControllers)
-			{
-				const FRotator SpawnRotation = VR_MuzzleLocation->GetComponentRotation();
-				const FVector SpawnLocation = VR_MuzzleLocation->GetComponentLocation();
-				World->SpawnActor<AGALandProjectile>(ProjectileClass, SpawnLocation, SpawnRotation);
-			}
-			else
-			{
-				const FRotator SpawnRotation = GetControlRotation();
-				// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-				const FVector SpawnLocation = ((FP_MuzzleLocation != nullptr) ? FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
-
-				//Set Spawn Collision Handling Override
-				FActorSpawnParameters ActorSpawnParams;
-				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
-
-				// spawn the projectile at the muzzle
-				World->SpawnActor<AGALandProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-			}
-		}
-	}
-
+	
 	// try and play the sound if specified
 	if (FireSound != nullptr)
 	{
@@ -178,12 +147,35 @@ void AGALandCharacter::OnFire()
 	if (FireAnimation != nullptr)
 	{
 		// Get the animation object for the arms mesh
-		UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
+		UAnimInstance* AnimInstance = StaticMeshFirstPerson->GetAnimInstance();
 		if (AnimInstance != nullptr)
 		{
 			AnimInstance->Montage_Play(FireAnimation, 1.f);
 		}
 	}
+}
+
+void AGALandCharacter::OnFire_Server()
+{
+	// try and fire a projectile
+	if (ProjectileClass != nullptr)
+	{
+		UWorld* const World = GetWorld();
+		
+		const FRotator SpawnRotation = GetControlRotation();
+		// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
+		const FVector SpawnLocation = ((FP_SpawnShootLocation != nullptr) ? FP_SpawnShootLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
+
+		//Set Spawn Collision Handling Override
+		FActorSpawnParameters ActorSpawnParams;
+		ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+		// APPELER SUR LE SERVEUR
+		//spawn the projectile at the muzzle
+		World->SpawnActor<AGALandProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+
+	}
+
 }
 
 void AGALandCharacter::OnResetVR()
@@ -199,7 +191,8 @@ void AGALandCharacter::BeginTouch(const ETouchIndex::Type FingerIndex, const FVe
 	}
 	if ((FingerIndex == TouchItem.FingerIndex) && (TouchItem.bMoved == false))
 	{
-		OnFire();
+		//OnFire_Owner();
+		//OnFire_Server();
 	}
 	TouchItem.bIsPressed = true;
 	TouchItem.FingerIndex = FingerIndex;
